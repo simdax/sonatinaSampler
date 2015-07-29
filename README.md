@@ -38,6 +38,7 @@ Pbind(
 )
 ```
 
+You can look the examples file "testSampler.scd"
 
 5. TODO 
 
