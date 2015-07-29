@@ -3,7 +3,7 @@ Quark to play Sonatina with Super Collider
 
 Simple lib to use pattern with Sonatina's sounds.
 
-
+```
 (
 
 Quarks.install("WarpExt");
@@ -20,3 +20,4 @@ Pbind(
 	\dur, 1.2
 ).play
 )
+```
