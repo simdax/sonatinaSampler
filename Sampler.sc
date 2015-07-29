@@ -1,7 +1,8 @@
 SonatinaSampler{
 
 	var <>sonatinaPath,
-	 <>noteMin=2, <>noteMax=130, <>dics;
+	<>noteMin=10, <>noteMax=130, //is that reasonnable ;)
+	<>dics;
 
 	*new{
 		arg path=(Platform.userHomeDir+/+"freesound/samples/");
@@ -34,16 +35,18 @@ SonatinaSampler{
 		// sonatina+folderName
 		// e.g. Pdef(\sonatinaCello)
 
-		SynthDef(\sonatina, {arg buffer, dur=1, midinote=1, out=0;
+		SynthDef(\sonatina, {arg buffer, dur=1, pitchShift=1, out=0, amp=0.5;
 			var sig, env;
 			env = EnvGen.kr(Env([0.01, 1, 1, 0.01], [0.1, dur, 0.3], 'exp'), doneAction: 2);
-			sig = Warp0.ar(2, buffer, dur, 1*midinote.midiratio, 0.1, -1, 8, 0.05, 4);
-			Out.ar(out, sig*env);
-		}).send(Server.local);
+			sig = Warp0.ar(2, buffer, dur, 1*pitchShift.midiratio, 0.1, -1, 8, 0.05, 4);
+			Out.ar(out, sig*env*amp);
+		}).add;
+
+		// finally we add the pdef to play the synth
 
 		dics.keys.collect({ |k|
 			this.initPattern(k)
-		})
+		});
 	}
 
 	// function for extract pitch from name
@@ -97,7 +100,10 @@ SonatinaSampler{
 		buffersPath.size.do({ |k|
 			sounds.add(
 				pitches[k] ->
-					Buffer.read(Server.local, buffersPath[k]);
+				{
+					var b=Buffer.read(Server.local, buffersPath[k]);
+					b.sampleRate=Server.local.sampleRate;
+				}.value;
 			);
 		});
 
@@ -110,9 +116,8 @@ SonatinaSampler{
 
 	// function for evaluating best distribution
 	// between buffers
-	// it somewhat private
 
-	distribNotes { arg dic, noteMin=2, noteMax= 130; // is that reasonnable ? ;)
+	distribNotes { arg dic, noteMin, noteMax;
 
 		// check the values between each value
 		var keys=dic.keys.asSortedList;
@@ -130,7 +135,10 @@ SonatinaSampler{
 		});
 
 		// we introduce the extreme values
-		result=[(noteMin..keys.first)] ++ result ++ [(keys.last .. noteMax)];
+		result=
+		[(noteMin..keys.first) ++ (keys.first + ( 1 ! distrib.first[0])) ]
+		++	result ++
+		[ (keys.last - ( 1 ! distrib.last[1])) ++ (keys.last .. noteMax)];
 
 		//and output an array of form:
 		// [ notes, bufferToUse, OriginalPitch]
@@ -142,30 +150,45 @@ SonatinaSampler{
 
 	}
 
-	// Function for creating a Synth who plays according to samples
-
 	// It creates also a pattern that you can use with a phrase type
 	// Pbind for play the Synth
 
-
 	initPattern { arg name;
 
-		Pdef(("sonatina"++name).asSymbol, { arg mel;
+		Pdef(("sonatina"++name).asSymbol, { arg midinote;
+
+			var pitch=midinote.value;
 			var dic=dics[name.asSymbol];
 
+			var index, buffer, midi;
+
 			//evaluate better sample buffer to pick up :
-			var index=dic.detectIndex({ |i|
-				i[0].includes(mel);
+			index=dic.detectIndex({ |i|
+				i[0].includesEqual(pitch);
 			});
-			var buffer=dic[index][1].query; // dunno why, but need query...
-			var midi=dic[index][2] - mel;
+
+
+			buffer=dic[index][1]; // dunno why, but need query...
+
+			midi=dic[index][2] - pitch;
+
 			 Pbind(
 			 	\instrument, \sonatina,
-			 	\buffer, buffer.bufnum,
-			 	\midinote, midi,
+			 	\buffer, buffer,
+			 	\pitchShift, midi,
 			).trace;
 		});
 	}
 
+	list{
+		^this.dics.keys.postln
+	}
+
+	free{
+		Buffer.freeAll;
+	}
+
 
 }
+
+
