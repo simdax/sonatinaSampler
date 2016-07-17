@@ -5,8 +5,8 @@ SonatinaSampler{
 	<>dics;
 
 	*new{
-		arg path=(Platform.userHomeDir+/+"freesound/samples/");
-		^super.newCopyArgs(path);
+		arg path=(Platform.userHomeDir+/+"Musique/soundfonts/sonatina/Samples");
+		^super.newCopyArgs(path).init;
 	}
 
 	init{
@@ -56,20 +56,10 @@ SonatinaSampler{
 	extractPitch { arg a;
 		var oct=(a.last.asString.asInt +1) *12;
 		var note=a.drop(-1);
-		^switch(note,
-			"c", 0,
-			"c#", 1,
-			"d", 2,
-			"d#", 3,
-			"e", 4,
-			"f", 5,
-			"f#", 6,
-			"g", 7,
-			"g#", 8,
-			"a", 9,
-			"a#", 10,
-			"b", 11, )
-		+oct;
+		^"c c# d d# e f f# g g# a a# b".split($ )
+		.selectIndices{|x| x==note} //indexOf dont work ???
+		.unbubble
+		+ oct;
 	}
 
 	// function for getting a list of Buffers from a folders filled
@@ -82,7 +72,7 @@ SonatinaSampler{
 	collectSamples { arg name;
 
 		var p=sonatinaPath;
-		var files=PathName(p +/+ name.capitalize).entries;
+		var files=PathName(p +/+ name).entries;
 
 		// sorting by function extractPitch, i.e. by pitch
 		var pitches=files.collect({ |j|
@@ -93,7 +83,6 @@ SonatinaSampler{
 
 		//load Buffers
 		var buffersPath= files.atAll(pitches.order).collect(_.absolutePath);
-
 		// cannot use allocConsecutive since I don't know the numframe...
 		var sounds=Dictionary.new;
 		pitches.sort;
@@ -169,7 +158,6 @@ SonatinaSampler{
 
 
 			buffer=dic[index][1]; // dunno why, but need query...
-
 			midi=dic[index][2] - pitch;
 
 			 Pbind(
