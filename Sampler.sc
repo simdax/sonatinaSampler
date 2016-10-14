@@ -132,7 +132,7 @@ SonatinaSampler{
 		//and output an array of form:
 		// [ notes, bufferToUse, OriginalPitch]
 
-		^dic.atAll(keys.asSortedList)
+		^dic.atAll(keys.asSortedList.postln)
 		.collect({ |buf, index|
 			[ result[index], buf, dic.findKeyForValue(buf) ]
 		})
